@@ -22,7 +22,7 @@ struct process
 
   /* Additional fields here */
   u32 rem_time;
-  bool seen;
+  bool ready;
   /* End of "Additional fields here" */
 };
 
@@ -168,15 +168,14 @@ int main(int argc, char *argv[])
 
   for (u32 i = 0; i < size; i++) {
       data[i].rem_time = data[i].burst_time;
-      data[i].seen = false;
+      data[i].ready = false;
   }
 
   while (completed_processes < size) {
-      // Add arriving processes to the queue
       for (u32 i = 0; i < size; i++) {
-          if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !data[i].seen) {
+          if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !data[i].ready) {
               TAILQ_INSERT_TAIL(&list, &data[i], pointers);
-              data[i].seen = true;
+              data[i].ready = true;
           }
       }
 
@@ -188,12 +187,10 @@ int main(int argc, char *argv[])
       curr_process = TAILQ_FIRST(&list);
       TAILQ_REMOVE(&list, curr_process, pointers);
 
-      // Calculate response time (first time a process is executed)
       if (curr_process->rem_time == curr_process->burst_time) {
           total_response_time += curr_time - curr_process->arrival_time;
       }
 
-      // Execute for up to quantum_length or remaining time
       u32 time_slice = (quantum_length == 0 || curr_process->rem_time < quantum_length)
                           ? curr_process->rem_time
                           : quantum_length;
@@ -201,19 +198,16 @@ int main(int argc, char *argv[])
       curr_process->rem_time -= time_slice;
       curr_time += time_slice;
 
-      // Add any new processes that arrived during the time slice
       for (u32 i = 0; i < size; i++) {
-          if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !data[i].seen) {
+          if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !data[i].ready) {
               TAILQ_INSERT_TAIL(&list, &data[i], pointers);
-              data[i].seen = true;
+              data[i].ready = true;
           }
       }
 
-      // If process is not finished, re-add to queue
       if (curr_process->rem_time > 0) {
           TAILQ_INSERT_TAIL(&list, curr_process, pointers);
       } else {
-          // Process is complete, calculate waiting time
           total_waiting_time += curr_time - curr_process->arrival_time - curr_process->burst_time;
           completed_processes++;
       }
