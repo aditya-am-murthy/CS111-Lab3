@@ -168,14 +168,15 @@ int main(int argc, char *argv[])
 
   for (u32 i = 0; i < size; i++) {
       data[i].rem_time = data[i].burst_time;
-      data[i].seen = false; // Initialize seen to false for response time tracking
+      data[i].seen = false;
   }
 
   while (completed_processes < size) {
       // Add arriving processes to the queue
       for (u32 i = 0; i < size; i++) {
-          if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !TAILQ_CONTAINS(&list, &data[i], pointers)) {
+          if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !data[i].seen) {
               TAILQ_INSERT_TAIL(&list, &data[i], pointers);
+              data[i].seen = true; // Mark as seen to avoid re-adding
           }
       }
 
@@ -187,7 +188,7 @@ int main(int argc, char *argv[])
       curr_process = TAILQ_FIRST(&list);
       TAILQ_REMOVE(&list, curr_process, pointers);
 
-      // Calculate response time the first time a process is executed
+      // Calculate response time (first time a process is executed)
       if (!curr_process->seen) {
           total_response_time += curr_time - curr_process->arrival_time;
           curr_process->seen = true;
@@ -210,6 +211,7 @@ int main(int argc, char *argv[])
           completed_processes++;
       }
   }
+
   /* End of "Your code here" */
 
   printf("Average waiting time: %.2f\n", (float)total_waiting_time / (float)size);
