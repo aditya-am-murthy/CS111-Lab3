@@ -226,8 +226,16 @@ int main(int argc, char *argv[])
 
         count++;
         curr_time++;
-        if (check_dynamic_times(data, size)) 
-          completed = true;
+        struct process * current_process;
+        bool check_complete = true;
+        for (u32 i = 0; i < size; i++) {
+
+          current_process = &data[i];
+          if (current_process->rem_time != 0) {
+            check_complete = false
+          }
+        }
+        completed = check_complete;
     }
   }
 
