@@ -21,6 +21,8 @@ struct process
   TAILQ_ENTRY(process) pointers;
 
   /* Additional fields here */
+  u32 rem_time;
+  bool seen;
   /* End of "Additional fields here" */
 };
 
@@ -160,7 +162,75 @@ int main(int argc, char *argv[])
   u32 total_response_time = 0;
 
   /* Your code here */
-  
+  struct process *curr_process;
+  u32 curr_time = data[0].arrival_time;
+
+  for (u32 i = 0; i < size; i++) {
+    curr_process = &data[i];
+    curr_process->rem_time = data[i].burst_time;
+    curr_process->seen = false;
+
+    if (curr_process->arrival_time < curr_time) {
+      curr_time = curr_process->arrival_time;
+    }
+    
+    u32 count = 1;
+    u32 total_time = curr_time;
+    bool completed = false;
+
+    if (quantum_length == 0) {
+      completed = true;
+    }
+
+    struct process * new_process;
+    while (!completed) {
+        for (u32 i = 0; i < size; i++) {
+          new_process = &data[i];
+          if (new_process->arrival_time == curr_time) {
+            TAILQ_INSERT_TAIL(&list, new_process, pointers);
+          }
+        }
+
+        if (count == quantum_length + 1 && curr_process->rem_time > 0) {
+          TAILQ_INSERT_TAIL(&list, curr_process, pointers);
+          count = 1;
+        }
+
+        if (count == 1) {
+          if (TAILQ_EMPTY(&list)) {
+            return -1; //completed tasks
+          }
+
+          curr_process = TAILQ_FIRST(&list);
+          TAILQ_REMOVE(&list, curr_process, pointers);
+        }
+        
+        if (!curr_process->seen) {
+            total_response_time = total_response_time + total_time - curr_process->arrival_time;
+            curr_process->seen = true;
+        }
+
+        if (count < quantum_length + 1) {
+
+          if (curr_process->rem_time > 0) {
+              curr_process->rem_time = curr_process->rem_time - 1;
+              total_time++;
+          }
+
+          if (curr_process->rem_time == 0) {
+            total_waiting_time = total_waiting_time + total_time - curr_process->arrival_time - curr_process->burst_time;
+            count = 0;
+          }
+
+        }
+
+        count++;
+        curr_time++;
+        if (check_dynamic_times(data, size)) 
+          completed = true;
+    }
+  }
+
   /* End of "Your code here" */
 
   printf("Average waiting time: %.2f\n", (float)total_waiting_time / (float)size);
