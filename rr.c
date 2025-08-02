@@ -201,6 +201,14 @@ int main(int argc, char *argv[])
       curr_process->rem_time -= time_slice;
       curr_time += time_slice;
 
+      // Add any new processes that arrived during the time slice
+      for (u32 i = 0; i < size; i++) {
+          if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !data[i].seen) {
+              TAILQ_INSERT_TAIL(&list, &data[i], pointers);
+              data[i].seen = true;
+          }
+      }
+
       // If process is not finished, re-add to queue
       if (curr_process->rem_time > 0) {
           TAILQ_INSERT_TAIL(&list, curr_process, pointers);
