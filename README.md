@@ -12,12 +12,12 @@ make
 
 ## Running
 
-cmd for running TODO
+cmd for running
 ```shell
 ./rr process.txt 3
 ```
 
-results TODO
+results
 ```shell
 Average waiting time: 7.00
 Average response time: 2.75
