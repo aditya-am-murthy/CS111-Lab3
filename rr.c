@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
       for (u32 i = 0; i < size; i++) {
           if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !data[i].seen) {
               TAILQ_INSERT_TAIL(&list, &data[i], pointers);
-              data[i].seen = true; // Mark as seen to avoid re-adding
+              data[i].seen = true;
           }
       }
 
@@ -189,9 +189,8 @@ int main(int argc, char *argv[])
       TAILQ_REMOVE(&list, curr_process, pointers);
 
       // Calculate response time (first time a process is executed)
-      if (!curr_process->seen) {
+      if (curr_process->rem_time == curr_process->burst_time) {
           total_response_time += curr_time - curr_process->arrival_time;
-          curr_process->seen = true;
       }
 
       // Execute for up to quantum_length or remaining time
