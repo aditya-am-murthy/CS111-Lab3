@@ -163,80 +163,53 @@ int main(int argc, char *argv[])
 
   /* Your code here */
   struct process *curr_process;
-  u32 curr_time = data[0].arrival_time;
+  u32 curr_time = 0;
+  u32 completed_processes = 0;
 
   for (u32 i = 0; i < size; i++) {
-    curr_process = &data[i];
-    curr_process->rem_time = data[i].burst_time;
-    curr_process->seen = false;
+      data[i].rem_time = data[i].burst_time;
+      data[i].seen = false;
+  }
 
-    if (curr_process->arrival_time < curr_time) {
-      curr_time = curr_process->arrival_time;
-    }
-    
-    u32 count = 1;
-    u32 total_time = curr_time;
-    bool completed = false;
-
-    if (quantum_length == 0) {
-      completed = true;
-    }
-
-    struct process * new_process;
-    while (!completed) {
-        for (u32 i = 0; i < size; i++) {
-          new_process = &data[i];
-          if (new_process->arrival_time == curr_time) {
-            TAILQ_INSERT_TAIL(&list, new_process, pointers);
+  while (completed_processes < size) {
+      // Add arriving processes to the queue
+      for (u32 i = 0; i < size; i++) {
+          if (data[i].arrival_time <= curr_time && data[i].rem_time > 0 && !data[i].seen) {
+              TAILQ_INSERT_TAIL(&list, &data[i], pointers);
+              data[i].seen = true; // Mark as seen to avoid re-adding
           }
-        }
+      }
 
-        if (count == quantum_length + 1 && curr_process->rem_time > 0) {
+      if (TAILQ_EMPTY(&list)) {
+          curr_time++;
+          continue;
+      }
+
+      curr_process = TAILQ_FIRST(&list);
+      TAILQ_REMOVE(&list, curr_process, pointers);
+
+      // Calculate response time (first time a process is executed)
+      if (!curr_process->seen) {
+          total_response_time += curr_time - curr_process->arrival_time;
+          curr_process->seen = true;
+      }
+
+      // Execute for up to quantum_length or remaining time
+      u32 time_slice = (quantum_length == 0 || curr_process->rem_time < quantum_length)
+                          ? curr_process->rem_time
+                          : quantum_length;
+
+      curr_process->rem_time -= time_slice;
+      curr_time += time_slice;
+
+      // If process is not finished, re-add to queue
+      if (curr_process->rem_time > 0) {
           TAILQ_INSERT_TAIL(&list, curr_process, pointers);
-          count = 1;
-        }
-
-        if (count == 1) {
-          if (TAILQ_EMPTY(&list)) {
-            return -1; //completed tasks
-          }
-
-          curr_process = TAILQ_FIRST(&list);
-          TAILQ_REMOVE(&list, curr_process, pointers);
-        }
-        
-        if (!curr_process->seen) {
-            total_response_time = total_response_time + total_time - curr_process->arrival_time;
-            curr_process->seen = true;
-        }
-
-        if (count < quantum_length + 1) {
-
-          if (curr_process->rem_time > 0) {
-              curr_process->rem_time = curr_process->rem_time - 1;
-              total_time++;
-          }
-
-          if (curr_process->rem_time == 0) {
-            total_waiting_time = total_waiting_time + total_time - curr_process->arrival_time - curr_process->burst_time;
-            count = 0;
-          }
-
-        }
-
-        count++;
-        curr_time++;
-        struct process * current_process;
-        bool check_complete = true;
-        for (u32 i = 0; i < size; i++) {
-
-          current_process = &data[i];
-          if (current_process->rem_time != 0) {
-            check_complete = false;
-          }
-        }
-        completed = check_complete;
-    }
+      } else {
+          // Process is complete, calculate waiting time
+          total_waiting_time += curr_time - curr_process->arrival_time - curr_process->burst_time;
+          completed_processes++;
+      }
   }
 
   /* End of "Your code here" */
