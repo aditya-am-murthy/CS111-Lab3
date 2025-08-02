@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
 
           current_process = &data[i];
           if (current_process->rem_time != 0) {
-            check_complete = false
+            check_complete = false;
           }
         }
         completed = check_complete;
